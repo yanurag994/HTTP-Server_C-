@@ -70,6 +70,13 @@ int main(int argc, char** argv) {
     response.body = req.line.target.substr(6);
     response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
   }
+  else if (req.line.target == "/user-agent")
+  {
+    response.line.set_status_code(200);
+    response.headers.add_update_header("Content-Type", "text/plain");
+    response.body = req.header.headers.at("User-Agent");
+    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
+  }
   else {
     response.line.set_status_code(404);
   }
