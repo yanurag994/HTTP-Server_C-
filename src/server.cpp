@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "request.hpp"
+#include "response.hpp"
 
 int main(int argc, char** argv) {
   // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -56,14 +57,25 @@ int main(int argc, char** argv) {
   recv(client, &request[0], request.length(), 0);
 
   Request req(request);
-  std::string response;
+  Response response;
 
-  if (req.line.target == "/")
-    response = "HTTP/1.1 200 OK\r\n\r\n";
-  else
-    response = "HTTP/1.1 404 Not Found\r\n\r\n";
+  if (req.line.target.size() == 1 && req.line.target == "/")
+  {
+    response.line.set_status_code(200);
+  }
+  else if (req.line.target.size() >= 6 && req.line.target.substr(0, 6) == "/echo/")
+  {
+    response.line.set_status_code(200);
+    response.headers.add_update_header("Content-Type", "text/plain");
+    response.body = req.line.target.substr(6);
+    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
+  }
+  else {
+    response.line.set_status_code(404);
+  }
 
-  send(client, response.c_str(), response.length(), 0);
+  const char* resp = response.c_str();
+  send(client, resp, strlen(resp), 0);
   close(server_fd);
 
   return 0;
