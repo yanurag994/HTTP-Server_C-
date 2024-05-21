@@ -70,7 +70,7 @@ struct Request {
       header = Request_Headers(req.substr(line_end + 2, headers_end - line_end - 2));
       auto it = header.headers.find("Content-Length");
       if (it != header.headers.end() && std::stoi(it->second) > 0) {
-        body = req.substr(headers_end + 4);
+        body = req.substr(headers_end + 2);
       }
       else {
         body = "";

@@ -20,41 +20,60 @@ void handle_request(int client, const std::string directory) {
   Request req(request);
   Response response;
 
-  if (req.line.target.size() == 1 && req.line.target == "/")
+  if (req.line.method == "GET")
   {
-    response.line.set_status_code(200);
-  }
-  else if (req.line.target.size() >= 6 && req.line.target.substr(0, 6) == "/echo/")
-  {
-    response.line.set_status_code(200);
-    response.headers.add_update_header("Content-Type", "text/plain");
-    response.body = req.line.target.substr(6);
-    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
-  }
-  else if (req.line.target == "/user-agent")
-  {
-    response.line.set_status_code(200);
-    response.headers.add_update_header("Content-Type", "text/plain");
-    response.body = req.header.headers.at("User-Agent");
-    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
-  }
-  else if (req.line.target.size() >= 6 && req.line.target.substr(0, 7) == "/files/")
-  {
-    std::ifstream file(directory + req.line.target.substr(7));
-    if (file.is_open())
+    if (req.line.target.size() == 1 && req.line.target == "/")
     {
       response.line.set_status_code(200);
-      response.headers.add_update_header("Content-Type", "application/octet-stream");
-      response.body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    }
+    else if (req.line.target.size() >= 6 && req.line.target.substr(0, 6) == "/echo/")
+    {
+      response.line.set_status_code(200);
+      response.headers.add_update_header("Content-Type", "text/plain");
+      response.body = req.line.target.substr(6);
       response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
     }
-    else
+    else if (req.line.target == "/user-agent")
     {
+      response.line.set_status_code(200);
+      response.headers.add_update_header("Content-Type", "text/plain");
+      response.body = req.header.headers.at("User-Agent");
+      response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
+    }
+    else if (req.line.target.size() >= 6 && req.line.target.substr(0, 7) == "/files/")
+    {
+      std::ifstream file(directory + req.line.target.substr(7));
+      if (file.is_open())
+      {
+        response.line.set_status_code(200);
+        response.headers.add_update_header("Content-Type", "application/octet-stream");
+        response.body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
+      }
+      else
+      {
+        response.line.set_status_code(404);
+      }
+    }
+    else {
       response.line.set_status_code(404);
     }
   }
-  else {
-    response.line.set_status_code(404);
+  else if (req.line.method == "POST")
+  {
+    if (req.line.target.size() >= 6 && req.line.target.substr(0, 7) == "/files/")
+    {
+      std::ofstream file(directory + req.line.target.substr(7));
+      if (file.is_open())
+      {
+        response.line.set_status_code(201);
+        file.write(req.body.c_str(), std::stoi(req.header.headers.at("Content-Length")));
+      }
+      else
+      {
+        response.line.set_status_code(404);
+      }
+    }
   }
 
   const char* resp = response.c_str();

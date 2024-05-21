@@ -16,6 +16,9 @@ public:
     case 200:
       reason = "OK";
       break;
+    case 201:
+      reason = "Created";
+      break;
     case 404:
       reason = "Not Found";
       break;
