@@ -9,6 +9,43 @@
 #include <netdb.h>
 #include "request.hpp"
 #include "response.hpp"
+#include <thread>
+
+void handle_request(int client) {
+  std::string request(1024, '\0');
+  recv(client, &request[0], request.length(), 0);
+
+  Request req(request);
+  Response response;
+
+  if (req.line.target.size() == 1 && req.line.target == "/")
+  {
+    response.line.set_status_code(200);
+  }
+  else if (req.line.target.size() >= 6 && req.line.target.substr(0, 6) == "/echo/")
+  {
+    response.line.set_status_code(200);
+    response.headers.add_update_header("Content-Type", "text/plain");
+    response.body = req.line.target.substr(6);
+    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
+  }
+  else if (req.line.target == "/user-agent")
+  {
+    response.line.set_status_code(200);
+    response.headers.add_update_header("Content-Type", "text/plain");
+    response.body = req.header.headers.at("User-Agent");
+    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
+  }
+  else {
+    response.line.set_status_code(404);
+  }
+
+  const char* resp = response.c_str();
+  send(client, resp, strlen(resp), 0);
+  close(client);
+  return;
+
+}
 
 int main(int argc, char** argv) {
   // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -45,45 +82,17 @@ int main(int argc, char** argv) {
     std::cerr << "listen failed\n";
     return 1;
   }
-
-  struct sockaddr_in client_addr;
-  int client_addr_len = sizeof(client_addr);
-
   std::cout << "Waiting for a client to connect...\n";
-  int client = accept(server_fd, (struct sockaddr*)&client_addr, (socklen_t*)&client_addr_len);
-  std::cout << "Client connected\n";
 
-  std::string request(1024, '\0');
-  recv(client, &request[0], request.length(), 0);
-
-  Request req(request);
-  Response response;
-
-  if (req.line.target.size() == 1 && req.line.target == "/")
+  while (true)
   {
-    response.line.set_status_code(200);
-  }
-  else if (req.line.target.size() >= 6 && req.line.target.substr(0, 6) == "/echo/")
-  {
-    response.line.set_status_code(200);
-    response.headers.add_update_header("Content-Type", "text/plain");
-    response.body = req.line.target.substr(6);
-    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
-  }
-  else if (req.line.target == "/user-agent")
-  {
-    response.line.set_status_code(200);
-    response.headers.add_update_header("Content-Type", "text/plain");
-    response.body = req.header.headers.at("User-Agent");
-    response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
-  }
-  else {
-    response.line.set_status_code(404);
+    struct sockaddr_in client_addr;
+    int client_addr_len = sizeof(client_addr);
+    int client = accept(server_fd, (struct sockaddr*)&client_addr, (socklen_t*)&client_addr_len);
+    std::thread client_req(handle_request, client);
+    client_req.detach();
   }
 
-  const char* resp = response.c_str();
-  send(client, resp, strlen(resp), 0);
   close(server_fd);
-
   return 0;
 }

@@ -50,11 +50,6 @@ struct Request_Headers {
 
       start = header_end + 2; // Move to the next line, skip "\r\n"
     }
-    std::cout << "Heeaders size is " << headers.size();
-    for (auto& [key, value] : headers)
-    {
-      std::cout << key << std::endl;
-    }
   }
 };
 
