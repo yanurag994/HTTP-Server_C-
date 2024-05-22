@@ -12,6 +12,9 @@
 #include "server.hpp"
 #include <fstream>
 #include <thread>
+#include <regex>
+#include <zlib.h>
+
 
 void handle_request(int client, const std::string directory) {
   std::string request(1024, '\0');
@@ -31,8 +34,16 @@ void handle_request(int client, const std::string directory) {
       response.line.set_status_code(200);
       response.headers.add_update_header("Content-Type", "text/plain");
       response.body = req.line.target.substr(6);
-      if (req.header.headers.find("Accept-Encoding") != req.header.headers.end())
-        response.headers.add_update_header("Content-Encoding", req.header.headers.at("Accept-Encoding"));
+      auto it = req.header.headers.find("Accept-Encoding");
+      if (it != req.header.headers.end()) {
+        // Check if "gzip" is present in "Accept-Encoding"
+        if (std::regex_search(it->second, std::regex("gzip"))) {
+          // Update the response header
+          response.headers.add_update_header("Content-Encoding", "gzip");
+          std::cout << "Updated Content-Encoding to gzip" << std::endl;
+        }
+      }
+      response.body = req.line.target.substr(6);
       response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
     }
     else if (req.line.target == "/user-agent")
