@@ -1,6 +1,18 @@
 #include <map>
 #include <string>
 #include <stdexcept>
+#include <iostream>
+#include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#ifndef NOTHREADING
+    #include <thread>
+#endif
 
 std::map<std::string, std::string> arg_parser(int argc, char** argv) {
     std::map<std::string, std::string> args;
@@ -14,7 +26,7 @@ std::map<std::string, std::string> arg_parser(int argc, char** argv) {
         if (key.size() < 2 || (key[0] != '-' || key[1] != '-')) {
             throw std::invalid_argument("Invalid argument key: " + key);
         }
-        
+
         args.emplace(key.substr(2), argv[i + 1]);
     }
 

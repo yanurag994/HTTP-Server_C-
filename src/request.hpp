@@ -30,32 +30,9 @@ struct Request_Line {
   }
 };
 
-struct Request_Headers {
-  std::map<std::string, std::string> headers;
-  Request_Headers() {}
-  Request_Headers(const std::string& head) {
-    size_t start = 0;
-    while (start < head.size()) {
-      size_t header_end = head.find("\r\n", start);
-      if (header_end == std::string::npos) {
-        break; // No more headers
-      }
-
-      std::string line = head.substr(start, header_end - start);
-      size_t header_sep = line.find(": ");
-      if (header_sep == std::string::npos) {
-        throw std::invalid_argument("Invalid header line: " + line);
-      }
-      headers.emplace(line.substr(0, header_sep), line.substr(header_sep + 2));
-
-      start = header_end + 2; // Move to the next line, skip "\r\n"
-    }
-  }
-};
-
 struct Request {
   Request_Line line;
-  Request_Headers header;
+  std::map<std::string, std::string>  headers;
   std::string body;
 
   Request(const std::string& req) {
@@ -67,9 +44,9 @@ struct Request {
 
     size_t headers_end = req.rfind("\r\n");
     if (headers_end != std::string::npos) {
-      header = Request_Headers(req.substr(line_end + 2, headers_end - line_end - 2));
-      auto it = header.headers.find("Content-Length");
-      if (it != header.headers.end() && std::stoi(it->second) > 0) {
+      parseHeaders(req.substr(line_end + 2, headers_end - line_end - 2));
+      auto it = headers.find("Content-Length");
+      if (it != headers.end() && std::stoi(it->second) > 0) {
         body = req.substr(headers_end + 2);
       }
       else {
@@ -77,8 +54,26 @@ struct Request {
       }
     }
     else {
-      header = Request_Headers(req.substr(line_end + 2));
+      parseHeaders(req.substr(line_end + 2));
       body = "";
+    }
+  }
+  void parseHeaders(const std::string& head) {
+    size_t start = 0;
+    while (start < head.size()) {
+      size_t header_end = head.find("\r\n", start);
+      if (header_end == std::string::npos) {
+        break; 
+      }
+
+      std::string line = head.substr(start, header_end - start);
+      size_t header_sep = line.find(": ");
+      if (header_sep == std::string::npos) {
+        throw std::invalid_argument("Invalid header line: " + line);
+      }
+      headers.emplace(line.substr(0, header_sep), line.substr(header_sep + 2));
+
+      start = header_end + 2; 
     }
   }
 };
