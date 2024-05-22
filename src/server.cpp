@@ -31,6 +31,8 @@ void handle_request(int client, const std::string directory) {
       response.line.set_status_code(200);
       response.headers.add_update_header("Content-Type", "text/plain");
       response.body = req.line.target.substr(6);
+      if (req.header.headers.find("Accept-Encoding") != req.header.headers.end())
+        response.headers.add_update_header("Content-Encoding", req.header.headers.at("Accept-Encoding"));
       response.headers.add_update_header("Content-Length", std::to_string(response.body.size()));
     }
     else if (req.line.target == "/user-agent")
